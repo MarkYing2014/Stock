@@ -1,24 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { StockMetrics } from "@/types/stock"
 
-interface StockMetrics {
-  lowestVolume: number;
-  highestVolume: number;
-  lowestClose: number;
-  highestClose: number;
-  averageVolume: number;
-  currentMarketCap: number;
+interface MetricsPanelProps {
+  metrics: StockMetrics | undefined
+  isLoading: boolean
 }
 
-export function MetricsPanel({ metrics }: { metrics?: StockMetrics }) {
-  const formatNumber = (num: number) => {
-    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`
-    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`
-    return num.toLocaleString()
-  }
-
-  if (!metrics) {
+export function MetricsPanel({ metrics, isLoading }: MetricsPanelProps) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -28,6 +18,36 @@ export function MetricsPanel({ metrics }: { metrics?: StockMetrics }) {
     );
   }
 
+  if (!metrics) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>No metrics available</CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US', {
+      notation: "compact",
+      maximumFractionDigits: 1
+    }).format(num)
+  }
+
+  const formatPercentage = (num: number) => {
+    return `${num >= 0 ? '+' : ''}${num.toFixed(2)}%`
+  }
+
+  const formatCurrency = (num: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: "compact",
+      maximumFractionDigits: 1
+    }).format(num)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -35,32 +55,26 @@ export function MetricsPanel({ metrics }: { metrics?: StockMetrics }) {
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Lowest Volume</p>
-            <p className="text-xl font-bold">{formatNumber(metrics.lowestVolume)}</p>
+          <div>
+            <p className="text-sm text-muted-foreground">Current Value</p>
+            <p className="text-xl font-bold">{formatCurrency(metrics.currentValue)}</p>
           </div>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Highest Volume</p>
-            <p className="text-xl font-bold">{formatNumber(metrics.highestVolume)}</p>
+          <div>
+            <p className="text-sm text-muted-foreground">Change</p>
+            <p className={`text-xl font-bold ${metrics.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatPercentage(metrics.percentageChange)}
+            </p>
           </div>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Lowest Close</p>
-            <p className="text-xl font-bold">${metrics.lowestClose.toFixed(2)}</p>
+          <div>
+            <p className="text-sm text-muted-foreground">Volume</p>
+            <p className="text-xl font-bold">{formatNumber(metrics.volume)}</p>
           </div>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Highest Close</p>
-            <p className="text-xl font-bold">${metrics.highestClose.toFixed(2)}</p>
+          <div>
+            <p className="text-sm text-muted-foreground">Market Cap</p>
+            <p className="text-xl font-bold">{formatCurrency(metrics.marketCap)}</p>
           </div>
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Average Volume</p>
-          <p className="text-xl font-bold">{formatNumber(metrics.averageVolume)}</p>
-        </div>
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">Market Cap</p>
-          <p className="text-xl font-bold">${formatNumber(metrics.currentMarketCap)}</p>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

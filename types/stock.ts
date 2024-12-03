@@ -9,24 +9,11 @@ export interface StockData {
   low?: number;
   open?: number;
   close?: number;
-  historicalData?: CandlestickData[];
-  metrics?: StockMetrics;
-}
-
-export interface CandlestickData {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
 }
 
 export interface StockMetrics {
-  lowestVolume: number;
-  highestVolume: number;
-  lowestClose: number;
-  highestClose: number;
-  averageVolume: number;
-  currentMarketCap: number;
+  currentValue: number;
+  percentageChange: number;
+  volume: number;
+  marketCap: number;
 }

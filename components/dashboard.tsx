@@ -89,20 +89,13 @@ export default function Dashboard() {
         const data = await response.json();
         console.log(`Successfully parsed data for ${symbol}:`, data);
         
-        // Calculate metrics from historical data
-        console.log(`Calculating metrics for ${symbol}...`);
+        // Create metrics from current data
         const metrics: StockMetrics = {
-          lowestVolume: Math.min(...data.historicalData.map((h: CandlestickData) => h.volume)),
-          highestVolume: Math.max(...data.historicalData.map((h: CandlestickData) => h.volume)),
-          lowestClose: Math.min(...data.historicalData.map((h: CandlestickData) => h.close)),
-          highestClose: Math.max(...data.historicalData.map((h: CandlestickData) => h.close)),
-          averageVolume: Math.round(
-            data.historicalData.reduce((sum: number, h: CandlestickData) => sum + h.volume, 0) / 
-            data.historicalData.length
-          ),
-          currentMarketCap: data.marketCap
+          currentValue: data.currentValue || 0,
+          percentageChange: data.percentageChange || 0,
+          volume: data.volume || 0,
+          marketCap: data.marketCap || 0,
         };
-        console.log(`Calculated metrics for ${symbol}:`, metrics);
         
         return {
           ...data,
