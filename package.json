@@ -18,7 +18,7 @@
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "yfinance": "^0.0.6"
+    "yahoo-finance2": "^2.13.2"
   },
   "devDependencies": {
     "@types/node": "^20",
