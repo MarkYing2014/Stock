@@ -57,7 +57,7 @@ export default function Dashboard() {
     const fetchStockData = async (symbol: string) => {
       try {
         console.log(`Attempting to fetch data for ${symbol}...`);
-        const url = `http://localhost:8000/api/stock/${symbol}`;
+        const url = `/api/stock/${symbol}`;
         console.log(`Making request to: ${url}`);
         
         const response = await fetch(url, {
