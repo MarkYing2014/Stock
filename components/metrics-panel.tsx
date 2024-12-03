@@ -9,23 +9,11 @@ interface MetricsPanelProps {
 
 export function MetricsPanel({ metrics, isLoading }: MetricsPanelProps) {
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Loading Metrics...</CardTitle>
-        </CardHeader>
-      </Card>
-    );
+    return <div className="text-center py-4">Loading Metrics...</div>
   }
 
   if (!metrics) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No metrics available</CardTitle>
-        </CardHeader>
-      </Card>
-    );
+    return <div className="text-center py-4">No metrics available</div>
   }
 
   const formatNumber = (num: number) => {
@@ -49,32 +37,28 @@ export function MetricsPanel({ metrics, isLoading }: MetricsPanelProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Period Metrics</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Current Value</p>
-            <p className="text-xl font-bold">{formatCurrency(metrics.currentValue)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Change</p>
-            <p className={`text-xl font-bold ${metrics.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatPercentage(metrics.percentageChange)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Volume</p>
-            <p className="text-xl font-bold">{formatNumber(metrics.volume)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Market Cap</p>
-            <p className="text-xl font-bold">{formatCurrency(metrics.marketCap)}</p>
-          </div>
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-lg font-semibold mb-4">Period Metrics</h2>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Current Value</p>
+          <p className="text-xl font-bold">{formatCurrency(metrics.currentValue)}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div>
+          <p className="text-sm text-muted-foreground">Change</p>
+          <p className={`text-xl font-bold ${metrics.percentageChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {formatPercentage(metrics.percentageChange)}
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Volume</p>
+          <p className="text-xl font-bold">{formatNumber(metrics.volume)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Market Cap</p>
+          <p className="text-xl font-bold">{formatCurrency(metrics.marketCap)}</p>
+        </div>
+      </div>
+    </div>
   )
 }
