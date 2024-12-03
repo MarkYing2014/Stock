@@ -1,23 +1,45 @@
 "use client"
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ResponsiveContainer,
   ComposedChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
   Line,
+  Bar,
+  Rectangle
 } from 'recharts';
+import { StockData, CandlestickData } from "@/types/stock";
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number;
+    name: string;
+    dataKey: string;
+    payload: CandlestickData;
+  }>;
+  label?: string;
+}
 
 interface CandlestickChartProps {
   symbol: string;
-  data: any;
+  data: StockData;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+interface ShapeProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  background?: boolean;
+  payload: CandlestickData;
+}
+
+const CustomTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -34,119 +56,92 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+function renderCandlestick(props: unknown) {
+  const { x, y, width, height, payload } = props as ShapeProps;
+  const data = payload as CandlestickData;
+  const isPositive = data.close >= data.open;
+
+  return (
+    <Rectangle
+      x={x - width / 2}
+      y={isPositive ? y : y - height}
+      width={width}
+      height={height}
+      fill={isPositive ? '#34D399' : '#EF4444'}
+    />
+  );
+}
+
 export function CandlestickChart({ symbol, data }: CandlestickChartProps) {
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<CandlestickData[]>([]);
 
   useEffect(() => {
     if (data?.historicalData) {
-      const formattedData = data.historicalData.map((item: any) => ({
-        date: new Date(item.date).toLocaleDateString(),
-        open: item.open,
-        close: item.close,
-        high: item.high,
-        low: item.low,
-        volume: item.volume,
-        // Calculate the candlestick body
-        bodyHeight: Math.abs(item.close - item.open),
-        bodyBottom: Math.min(item.close, item.open),
-        // Color coding
-        isPositive: item.close >= item.open,
-      }));
-      setChartData(formattedData);
+      setChartData(data.historicalData);
     }
   }, [data]);
 
-  if (!data || !chartData.length) {
-    return (
-      <div className="flex items-center justify-center h-[400px] bg-gray-100 rounded-lg">
-        <p className="text-lg text-gray-600">No data available</p>
-      </div>
-    );
+  if (!chartData.length) {
+    return <div>Loading chart data...</div>;
   }
 
   // Calculate price range for Y-axis
   const prices = chartData.flatMap(d => [d.high, d.low]);
-  const minPrice = Math.min(...prices);
   const maxPrice = Math.max(...prices);
-  const priceMargin = (maxPrice - minPrice) * 0.05;
+  const minPrice = Math.min(...prices);
+  const priceMargin = (maxPrice - minPrice) * 0.1;
 
   // Calculate volume range for secondary Y-axis
   const volumes = chartData.map(d => d.volume);
   const maxVolume = Math.max(...volumes);
+
+  const formatYAxis = (value: number) => {
+    return `$${value.toFixed(2)}`;
+  };
+
+  const formatVolume = (value: number) => {
+    return `${(value / 1000000).toFixed(1)}M`;
+  };
 
   return (
     <div className="w-full h-[400px] bg-white p-4 rounded-lg shadow">
       <h2 className="text-xl font-semibold mb-4">{symbol} Stock Price</h2>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={chartData}>
-          <XAxis 
-            dataKey="date" 
-            scale="band"
+          <XAxis
+            dataKey="date"
             tick={{ fontSize: 12 }}
           />
           <YAxis 
             yAxisId="price"
             domain={[minPrice - priceMargin, maxPrice + priceMargin]}
             tick={{ fontSize: 12 }}
-            tickFormatter={(value) => `$${value.toFixed(2)}`}
+            tickFormatter={formatYAxis}
           />
           <YAxis 
             yAxisId="volume"
             orientation="right"
             domain={[0, maxVolume]}
-            tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+            tickFormatter={formatVolume}
           />
           <Tooltip content={<CustomTooltip />} />
           <CartesianGrid strokeDasharray="3 3" />
           
-          {/* Volume bars in background */}
-          <Bar
-            dataKey="volume"
-            yAxisId="volume"
-            fill="#E5E7EB"
-            opacity={0.5}
-            barSize={8}
-          />
-
-          {/* Candlestick wicks (high-low lines) */}
-          {chartData.map((entry, index) => (
-            <Line
-              key={`wick-${index}`}
-              type="monotone"
-              data={[entry]}
-              dataKey="high"
-              stroke={entry.isPositive ? '#34D399' : '#EF4444'}
-              dot={false}
-              yAxisId="price"
-            />
-          ))}
-
           {/* Candlestick bodies */}
           <Bar
-            dataKey="bodyHeight"
+            dataKey="close"
             yAxisId="price"
             barSize={8}
-            shape={(props: any) => {
-              const { x, y, width, height, payload } = props;
-              return (
-                <rect
-                  x={x - width / 2}
-                  y={payload.isPositive ? y : y - height}
-                  width={width}
-                  height={height}
-                  fill={payload.isPositive ? '#34D399' : '#EF4444'}
-                />
-              );
-            }}
+            shape={renderCandlestick}
           />
           
           {/* Moving average line */}
           <Line
             type="monotone"
             dataKey="close"
-            stroke="#6366F1"
+            stroke="#8884d8"
             dot={false}
-            strokeWidth={1}
+            strokeWidth={2}
             yAxisId="price"
           />
         </ComposedChart>

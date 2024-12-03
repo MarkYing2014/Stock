@@ -9,14 +9,25 @@ interface StockCardProps {
   change?: number
   data?: Array<{ close: number, date: string }>
   isSelected?: boolean
+  onClick?: () => void
 }
 
-export function StockCard({ symbol, currentPrice = 0, change = 0, data = [], isSelected = false }: StockCardProps) {
+export function StockCard({ 
+  symbol, 
+  currentPrice = 0, 
+  change = 0, 
+  data = [], 
+  isSelected = false,
+  onClick
+}: StockCardProps) {
   const isNegative = change < 0
   const chartData = data.map(item => ({ value: item.close }))
 
   return (
-    <Card className={`${isSelected ? 'ring-2 ring-primary' : ''}`}>
+    <Card 
+      className={`${isSelected ? 'ring-2 ring-primary' : ''} cursor-pointer hover:shadow-lg transition-shadow`}
+      onClick={onClick}
+    >
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>

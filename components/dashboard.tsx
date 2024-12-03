@@ -1,118 +1,179 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useReducer, useEffect, useState } from "react"
 import { StockCard } from "./stock-card"
 import { CandlestickChart } from "./candlestick-chart"
 import { MetricsPanel } from "./metrics-panel"
 import { StockTable } from "./stock-table"
+import { StockData, StockMetrics } from "@/types/stock"
 
 // Initial stock symbols to display
 const STOCK_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "META"];
 
-interface StockData {
-  symbol: string;
-  currentPrice: number;
-  name: string;
-  change: number;
-  volume: number;
-  marketCap: number;
-  historicalData: Array<{
-    date: string;
-    open: number;
-    close: number;
-    high: number;
-    low: number;
-    volume: number;
-  }>;
-  metrics: {
-    lowestVolume: number;
-    highestVolume: number;
-    lowestClose: number;
-    highestClose: number;
-    averageVolume: number;
-    currentMarketCap: number;
-  };
+interface DashboardState {
+  stocksData: Record<string, StockData>;
+  selectedStock: string;
+  stockData: StockData | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+type DashboardAction =
+  | { type: 'SET_STOCKS_DATA'; payload: Record<string, StockData> }
+  | { type: 'SET_SELECTED_STOCK'; payload: string }
+  | { type: 'SET_STOCK_DATA'; payload: StockData }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_ERROR'; payload: string | null };
+
+function dashboardReducer(state: DashboardState, action: DashboardAction): DashboardState {
+  switch (action.type) {
+    case 'SET_STOCKS_DATA':
+      return { ...state, stocksData: action.payload };
+    case 'SET_SELECTED_STOCK':
+      return { ...state, selectedStock: action.payload };
+    case 'SET_STOCK_DATA':
+      return { ...state, stockData: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ERROR':
+      return { ...state, error: action.payload };
+    default:
+      return state;
+  }
 }
 
 export default function Dashboard() {
-  const [selectedStock, setSelectedStock] = useState(STOCK_SYMBOLS[0]);
-  const [stockData, setStockData] = useState<StockData | null>(null);
-  const [stocksData, setStocksData] = useState<Record<string, StockData>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [state, dispatch] = useReducer(dashboardReducer, {
+    stocksData: {},
+    selectedStock: STOCK_SYMBOLS[0],
+    stockData: null,
+    isLoading: true,
+    error: null
+  });
 
-  const fetchStockData = async (symbol: string) => {
-    try {
-      console.log('Fetching data for:', symbol);
-      const response = await fetch(`http://localhost:8000/api/stock/${symbol}`);
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch stock data: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log('Received data for', symbol, data);
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error fetching stock data:', error);
-      throw error;
-    }
-  };
+  const { stocksData, selectedStock, stockData, isLoading, error } = state;
 
-  const handleStockSelect = (symbol: string) => {
-    setSelectedStock(symbol);
-  };
+  const [metrics, setMetrics] = useState<StockMetrics | undefined>(undefined);
 
-  // Fetch initial data for all stocks
   useEffect(() => {
+    const fetchStockData = async (symbol: string) => {
+      try {
+        console.log(`Attempting to fetch data for ${symbol}...`);
+        const url = `http://localhost:8000/api/stock/${symbol}`;
+        console.log(`Making request to: ${url}`);
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        console.log(`Received response for ${symbol}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+        
+        if (!response.ok) {
+          let errorMessage = `HTTP error! status: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            console.log(`Error data for ${symbol}:`, errorData);
+            errorMessage = errorData.detail || errorMessage;
+          } catch (e) {
+            console.error(`Error parsing error response for ${symbol}:`, e);
+          }
+          throw new Error(errorMessage);
+        }
+        
+        console.log(`Parsing response data for ${symbol}...`);
+        const data = await response.json();
+        console.log(`Successfully parsed data for ${symbol}:`, data);
+        
+        // Calculate metrics from historical data
+        console.log(`Calculating metrics for ${symbol}...`);
+        const metrics = {
+          lowestVolume: Math.min(...data.historicalData.map((h: any) => h.volume)),
+          highestVolume: Math.max(...data.historicalData.map((h: any) => h.volume)),
+          lowestClose: Math.min(...data.historicalData.map((h: any) => h.close)),
+          highestClose: Math.max(...data.historicalData.map((h: any) => h.close)),
+          averageVolume: Math.round(
+            data.historicalData.reduce((sum: number, h: any) => sum + h.volume, 0) / 
+            data.historicalData.length
+          ),
+          currentMarketCap: data.marketCap
+        };
+        console.log(`Calculated metrics for ${symbol}:`, metrics);
+        
+        return {
+          ...data,
+          metrics
+        };
+      } catch (error) {
+        console.error(`Error in fetchStockData for ${symbol}:`, error);
+        throw error;
+      }
+    };
+
     const fetchAllStocks = async () => {
-      setIsLoading(true);
-      setError(null);
+      dispatch({ type: 'SET_LOADING', payload: true });
+      dispatch({ type: 'SET_ERROR', payload: null });
       
       try {
+        console.log('Starting to fetch all stocks...');
         const newStocksData: Record<string, StockData> = {};
+        let hasAnyData = false;
+        let lastError = null;
         
         // Fetch stocks sequentially to avoid rate limiting
         for (const symbol of STOCK_SYMBOLS) {
           try {
-            const data = await fetchStockData(symbol);
-            newStocksData[symbol] = data;
+            console.log(`Fetching data for ${symbol}...`);
+            const stockData = await fetchStockData(symbol);
+            newStocksData[symbol] = stockData;
+            hasAnyData = true;
+            console.log(`Successfully fetched data for ${symbol}`);
           } catch (error) {
             console.error(`Error fetching ${symbol}:`, error);
+            lastError = error;
           }
         }
         
-        setStocksData(newStocksData);
+        if (!hasAnyData) {
+          throw lastError || new Error('Failed to fetch data for any stocks');
+        }
+        
+        console.log('Setting stocks data:', newStocksData);
+        dispatch({ type: 'SET_STOCKS_DATA', payload: newStocksData });
         
         // Set initial selected stock data
         if (newStocksData[selectedStock]) {
-          setStockData(newStocksData[selectedStock]);
+          console.log(`Setting selected stock data for ${selectedStock}`);
+          dispatch({ type: 'SET_STOCK_DATA', payload: newStocksData[selectedStock] });
+        } else {
+          // If selected stock failed to load, try to select the first available stock
+          const firstAvailableStock = Object.keys(newStocksData)[0];
+          if (firstAvailableStock) {
+            console.log(`Selected stock ${selectedStock} not available, falling back to ${firstAvailableStock}`);
+            dispatch({ type: 'SET_SELECTED_STOCK', payload: firstAvailableStock });
+            dispatch({ type: 'SET_STOCK_DATA', payload: newStocksData[firstAvailableStock] });
+          }
         }
       } catch (error) {
-        console.error('Error fetching initial stock data:', error);
-        setError(error instanceof Error ? error.message : 'Failed to fetch stock data');
+        console.error('Error fetching stock data:', error);
+        dispatch({ type: 'SET_ERROR', payload: error instanceof Error ? error.message : 'Failed to fetch stock data' });
       } finally {
-        setIsLoading(false);
+        dispatch({ type: 'SET_LOADING', payload: false });
       }
     };
     
     fetchAllStocks();
-  }, []);
+  }, [selectedStock, dispatch]);
 
-  // Update selected stock data when stocksData changes
-  useEffect(() => {
-    if (stocksData[selectedStock]) {
-      setStockData(stocksData[selectedStock]);
-    }
-  }, [selectedStock, stocksData]);
+  const handleStockSelect = (symbol: string) => {
+    dispatch({ type: 'SET_SELECTED_STOCK', payload: symbol });
+  };
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -140,10 +201,11 @@ export default function Dashboard() {
               ) : (
                 <StockCard 
                   symbol={symbol}
-                  currentPrice={stock?.currentPrice ?? 0}
-                  change={stock?.change ?? 0}
-                  data={stock?.historicalData ?? []}
+                  currentPrice={stock?.currentValue}
+                  change={stock?.percentageChange}
+                  data={stock?.historicalData}
                   isSelected={selectedStock === symbol}
+                  onClick={() => dispatch({ type: 'SET_SELECTED_STOCK', payload: symbol })}
                 />
               )}
             </div>
@@ -153,9 +215,13 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-[400px] bg-gray-100 rounded-lg">
-              <p className="text-lg text-gray-600">Loading chart data...</p>
+          {!selectedStock ? (
+            <div className="h-[400px] flex items-center justify-center bg-white rounded-lg shadow">
+              <p className="text-gray-600">Select a stock to view detailed chart</p>
+            </div>
+          ) : !stockData ? (
+            <div className="h-[400px] flex items-center justify-center bg-white rounded-lg shadow">
+              <p className="text-gray-600">Loading chart data...</p>
             </div>
           ) : (
             <CandlestickChart symbol={selectedStock} data={stockData} />
