@@ -1,15 +1,15 @@
 export interface StockData {
   symbol: string;
-  currentValue: number;
-  percentageChange: number;
-  previousClose: number;
-  volume: number;
-  marketCap: number;
-  high: number;
-  low: number;
-  open: number;
-  close: number;
-  historicalData: CandlestickData[];
+  currentValue?: number;
+  percentageChange?: number;
+  previousClose?: number;
+  volume?: number;
+  marketCap?: number;
+  high?: number;
+  low?: number;
+  open?: number;
+  close?: number;
+  historicalData?: CandlestickData[];
   metrics?: StockMetrics;
 }
 

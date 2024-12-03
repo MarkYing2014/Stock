@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const symbol = params.symbol;
-    const stock = yf.Ticker(symbol);
+    const stock = new yf.Ticker(symbol);
     
     // Get basic info
     const info = await stock.info;
