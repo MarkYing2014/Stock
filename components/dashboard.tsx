@@ -1,11 +1,11 @@
 "use client"
 
-import { useReducer, useEffect, useState } from "react"
+import { useReducer, useEffect } from "react"
 import { StockCard } from "./stock-card"
 import { CandlestickChart } from "./candlestick-chart"
 import { MetricsPanel } from "./metrics-panel"
 import { StockTable } from "./stock-table"
-import { StockData, StockMetrics } from "@/types/stock"
+import { StockData, StockMetrics, CandlestickData } from "@/types/stock"
 
 // Initial stock symbols to display
 const STOCK_SYMBOLS = ["AAPL", "MSFT", "GOOGL", "AMZN", "META"];
@@ -53,8 +53,6 @@ export default function Dashboard() {
 
   const { stocksData, selectedStock, stockData, isLoading, error } = state;
 
-  const [metrics, setMetrics] = useState<StockMetrics | undefined>(undefined);
-
   useEffect(() => {
     const fetchStockData = async (symbol: string) => {
       try {
@@ -93,13 +91,13 @@ export default function Dashboard() {
         
         // Calculate metrics from historical data
         console.log(`Calculating metrics for ${symbol}...`);
-        const metrics = {
-          lowestVolume: Math.min(...data.historicalData.map((h: any) => h.volume)),
-          highestVolume: Math.max(...data.historicalData.map((h: any) => h.volume)),
-          lowestClose: Math.min(...data.historicalData.map((h: any) => h.close)),
-          highestClose: Math.max(...data.historicalData.map((h: any) => h.close)),
+        const metrics: StockMetrics = {
+          lowestVolume: Math.min(...data.historicalData.map((h: CandlestickData) => h.volume)),
+          highestVolume: Math.max(...data.historicalData.map((h: CandlestickData) => h.volume)),
+          lowestClose: Math.min(...data.historicalData.map((h: CandlestickData) => h.close)),
+          highestClose: Math.max(...data.historicalData.map((h: CandlestickData) => h.close)),
           averageVolume: Math.round(
-            data.historicalData.reduce((sum: number, h: any) => sum + h.volume, 0) / 
+            data.historicalData.reduce((sum: number, h: CandlestickData) => sum + h.volume, 0) / 
             data.historicalData.length
           ),
           currentMarketCap: data.marketCap

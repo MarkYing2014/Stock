@@ -10,6 +10,7 @@ export interface StockData {
   open: number;
   close: number;
   historicalData: CandlestickData[];
+  metrics?: StockMetrics;
 }
 
 export interface CandlestickData {

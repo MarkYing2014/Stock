@@ -115,6 +115,13 @@ ${colorConfig
   )
 }
 
+const formatChartValue = (value: number | string | Record<string, number | string> | undefined): string => {
+  if (typeof value === 'undefined') return '';
+  if (typeof value === 'number') return value.toLocaleString();
+  if (typeof value === 'string') return value;
+  return JSON.stringify(value);
+};
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
   TooltipProps & {
@@ -199,7 +206,7 @@ const ChartTooltipContent = React.forwardRef<
                   )}
                   {name}
                 </div>
-                <div>{value}</div>
+                <div>{formatChartValue(value)}</div>
               </div>
             )
           })}
@@ -294,5 +301,4 @@ export {
   ChartContainer,
   ChartTooltipContent,
   ChartLegendContent,
-  type ChartConfig,
 }
